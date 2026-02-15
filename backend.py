@@ -3,6 +3,7 @@ import numpy
 import scipy.optimize
 import database
 import logging
+import matplotlib.pyplot
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,14 @@ def get_portfolio_metrics(weights, expected_returns, covariance_matrix, risk_fre
     sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_volatility
     return portfolio_return, portfolio_volatility, sharpe_ratio
 
-def maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate=0.04):
+def calculate_var(weights, returns, confidence_level=0.05):
+    """
+    Calculate the Historical Value at Risk (VaR).
+    """
+    portfolio_returns = returns.dot(weights)
+    return portfolio_returns.quantile(confidence_level)
+
+def maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate=0.04, max_allocation=1.0):
     number_of_assets = len(mean_returns)
     args = (mean_returns, covariance_matrix, risk_free_rate)
 
@@ -22,31 +30,66 @@ def maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate=0.04):
         return -1 * sharpe_ratio
 
     constraints = ({'type': 'eq', 'fun': lambda x: numpy.sum(x) - 1})
-    bounds = tuple((0.0, 1.0) for asset in range(number_of_assets)) # assumes no shorting
+    bounds = tuple((0.0, max_allocation) for asset in range(number_of_assets)) # assumes no shorting
     initial_guess = [1.0 / number_of_assets] * number_of_assets
     result = scipy.optimize.minimize(negative_sharpe_ratio, initial_guess, args=args, method='SLSQP', bounds=bounds, constraints=constraints)
     return result
 
+def plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, num_portfolios=20000, risk_free_rate=0.04):
+    logger.info(f"Generating {num_portfolios} random portfolios for Efficient Frontier...")
+    
+    num_assets = len(mean_returns)
+    
+    # Generate random weights
+    weights = numpy.random.random((num_portfolios, num_assets))
+    weights /= numpy.sum(weights, axis=1)[:, numpy.newaxis]
+    
+    # Vectorized calculation of returns
+    portfolio_returns = numpy.dot(weights, mean_returns)
+    
+    # Vectorized calculation of volatility
+    # Variance = w.T * Cov * w. We need to do this for each row in weights.
+    # Using einsum for efficient batch matrix multiplication: 'ij,jk,ik->i'
+    # i: portfolio index, j: asset index 1, k: asset index 2
+    # weights (i, j), covariance_matrix (j, k), weights (i, k)
+    portfolio_variances = numpy.einsum('ij,jk,ik->i', weights, covariance_matrix, weights)
+    portfolio_volatilities = numpy.sqrt(portfolio_variances)
+    
+    sharpe_ratios = (portfolio_returns - risk_free_rate) / portfolio_volatilities
+    
+    matplotlib.pyplot.figure(figsize=(12, 6.75), dpi=140)
+    scatter = matplotlib.pyplot.scatter(portfolio_volatilities, portfolio_returns, c=sharpe_ratios, cmap='viridis', marker='.', s=5, alpha=0.9)
+    matplotlib.pyplot.colorbar(scatter, label='Sharpe Ratio')
 
-def optimize_portfolio():
+    # Plot optimal portfolio
+    opt_ret, opt_vol, opt_sharpe = get_portfolio_metrics(optimal_weights, mean_returns, covariance_matrix, risk_free_rate)
+    matplotlib.pyplot.scatter(opt_vol, opt_ret, marker='x', color='r', s=50, label='Maximum Sharpe Ratio')
+
+    matplotlib.pyplot.title('Efficient Frontier with Monte Carlo Simulation')
+    matplotlib.pyplot.xlabel('Volatility (Std. Dev)')
+    matplotlib.pyplot.ylabel('Expected Return')
+    matplotlib.pyplot.legend()
+    matplotlib.pyplot.grid(True, linestyle='--', alpha=0.9)
+
+    logger.info("Generating Efficient Frontier plot...")
+    matplotlib.pyplot.show()
+
+def optimize_portfolio(max_allocation=1.0, current_holdings=None):
     try:
         df_prices = database.get_table_from_database("stock_prices")
     except Exception as e:
         logger.error(f"Failed to retrieve data from database: {e}")
-        return
+        return None
 
     if df_prices.empty:
         logger.warning("Stock prices table is empty.")
-        return
-
+        return None
 
     log_returns = numpy.log(df_prices / df_prices.shift(1))
     log_returns = log_returns.dropna()
 
-
     mean_returns = log_returns.mean() * 252
     covariance_matrix = log_returns.cov() * 252
-
 
     logger.info("Running Max Sharpe Optimization...")
     
@@ -62,31 +105,23 @@ def optimize_portfolio():
         logger.warning(f"Could not fetch risk-free rate from database, using default 0.04. Error: {e}")
         risk_free_rate = 0.04
 
-    optimization_result = maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate)
+    optimization_result = maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate, max_allocation)
 
     optimal_weights = optimization_result.x
-
-
-    print("\n--- OPTIMAL PORTFOLIO ALLOCATION ---")
-    tickers = df_prices.columns
-    for ticker, weight in zip(tickers, optimal_weights):
-        # Only print if weight is significant (greater than 0.1%)
-        if weight > 0.001:
-            print(f"{ticker}: {weight:.2%}")
+    weights_dict = dict(zip(df_prices.columns, optimal_weights))
 
     # Calculate metrics for the optimal portfolio
     expected_return, expected_volatility, sharpe_ratio = get_portfolio_metrics(optimal_weights, mean_returns, covariance_matrix, risk_free_rate)
     
-    print("------------------------------------")
-    print(f"Expected Annual Return: {expected_return:.2%}")
-    print(f"Annual Volatility:      {expected_volatility:.2%}")
-    print(f"Sharpe Ratio (Rf={risk_free_rate:.2%}):   {sharpe_ratio:.2f}")
+    var_95 = calculate_var(optimal_weights, log_returns)
 
-# Suggestions to user to add:
-# 1. Efficient Frontier Plotting: Visualize the risk-return trade-off.
-# 2. Monte Carlo Simulation: Project future portfolio performance.
-# 3. Value at Risk (VaR): Calculate potential loss at a given confidence level.
+    # plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, risk_free_rate=risk_free_rate)
 
-
-if __name__ == "__main__":
-    optimize_portfolio()
+    return {
+        "weights": weights_dict,
+        "expected_return": expected_return,
+        "volatility": expected_volatility,
+        "sharpe_ratio": sharpe_ratio,
+        "var_95": var_95,
+        "prices": df_prices.iloc[-1]
+    }

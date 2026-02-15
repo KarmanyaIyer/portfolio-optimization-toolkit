@@ -30,3 +30,8 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# project misc
+*.log
+*.db
+/planning_misc/
