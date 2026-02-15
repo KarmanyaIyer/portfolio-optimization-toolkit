@@ -25,12 +25,12 @@ def maximize_sharpe_ratio(mean_returns, covariance_matrix, risk_free_rate=0.04, 
     args = (mean_returns, covariance_matrix, risk_free_rate)
 
     # Scipy optimization does not have a maximize function, so we just minimize it's inverse {minimize -f(x) to maximize f(x)}
-    def negative_sharpe_ratio(weights, mean_returns, covariance_matrix, risk_free_rate):
-        portfolio_return, portfolio_volatility, sharpe_ratio = get_portfolio_metrics(weights, mean_returns, covariance_matrix, risk_free_rate)
+    def negative_sharpe_ratio(weights, m_returns, cov_matrix, rf_rate):
+        portfolio_return, portfolio_volatility, sharpe_ratio = get_portfolio_metrics(weights, m_returns, cov_matrix, rf_rate)
         return -1 * sharpe_ratio
 
     constraints = ({'type': 'eq', 'fun': lambda x: numpy.sum(x) - 1})
-    bounds = tuple((0.0, max_allocation) for asset in range(number_of_assets)) # assumes no shorting
+    bounds = tuple((0.0, max_allocation) for _ in range(number_of_assets)) # assumes no shorting
     initial_guess = [1.0 / number_of_assets] * number_of_assets
     result = scipy.optimize.minimize(negative_sharpe_ratio, initial_guess, args=args, method='SLSQP', bounds=bounds, constraints=constraints)
     return result
@@ -72,9 +72,10 @@ def plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, nu
     matplotlib.pyplot.grid(True, linestyle='--', alpha=0.9)
 
     logger.info("Generating Efficient Frontier plot...")
-    matplotlib.pyplot.show()
+    matplotlib.pyplot.show(block=False)
+    matplotlib.pyplot.pause(0.1)
 
-def optimize_portfolio(max_allocation=1.0, current_holdings=None):
+def optimize_portfolio(max_allocation=1.0, show_plot=False):
     try:
         df_prices = database.get_table_from_database("stock_prices")
     except Exception as e:
@@ -85,8 +86,24 @@ def optimize_portfolio(max_allocation=1.0, current_holdings=None):
         logger.warning("Stock prices table is empty.")
         return None
 
-    log_returns = numpy.log(df_prices / df_prices.shift(1))
-    log_returns = log_returns.dropna()
+    # Clean data before log returns
+    df_prices = df_prices.dropna(axis=1, how='all') # Drop columns that are all NaN
+    df_prices = df_prices.dropna() # Drop rows with any NaN
+
+    if df_prices.empty:
+        logger.warning("Stock prices table is empty after cleaning.")
+        return None
+
+    try:
+        log_returns = numpy.log(df_prices / df_prices.shift(1))
+        log_returns = log_returns.dropna()
+    except Exception as e:
+        logger.error(f"Error calculating log returns: {e}")
+        return None
+
+    if log_returns.empty:
+        logger.warning("Log returns are empty.")
+        return None
 
     mean_returns = log_returns.mean() * 252
     covariance_matrix = log_returns.cov() * 252
@@ -115,7 +132,8 @@ def optimize_portfolio(max_allocation=1.0, current_holdings=None):
     
     var_95 = calculate_var(optimal_weights, log_returns)
 
-    # plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, risk_free_rate=risk_free_rate)
+    if show_plot:
+        plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, risk_free_rate=risk_free_rate)
 
     return {
         "weights": weights_dict,

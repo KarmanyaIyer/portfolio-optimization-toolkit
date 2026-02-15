@@ -35,3 +35,4 @@ $RECYCLE.BIN/
 *.log
 *.db
 /planning_misc/
+CHANGELOG.md
