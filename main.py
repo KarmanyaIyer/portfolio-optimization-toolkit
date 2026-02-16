@@ -45,15 +45,19 @@ def get_tickers_input():
             for i, name in enumerate(preset_keys, 1):
                 print(f"{i}. {name}: {', '.join(PRESETS[name])}")
             
-            try:
-                choice = int(input("Select a preset number: "))
-                if 1 <= choice <= len(preset_keys):
-                    selected_preset = preset_keys[choice - 1]
-                    return PRESETS[selected_preset]
-                else:
-                    print("Invalid preset number.")
-            except ValueError:
-                print("Invalid input.")
+            while True:
+                selection = input("Select a preset number (or 'b' to go back): ").strip()
+                if selection.lower() == 'b':
+                    break
+                try:
+                    choice = int(selection)
+                    if 1 <= choice <= len(preset_keys):
+                        selected_preset = preset_keys[choice - 1]
+                        return PRESETS[selected_preset]
+                    else:
+                        print("Invalid preset number.")
+                except ValueError:
+                    print("Invalid input.")
         else:
             return [t.strip().upper() for t in user_input.split(',')]
 
