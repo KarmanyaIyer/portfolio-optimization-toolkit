@@ -32,7 +32,7 @@ def get_user_input(prompt, type_func=str):
 def get_tickers_input():
     while True:
         user_input = input("Enter Ticker List (comma separated) or 'P' for Presets: ").strip()
-        if user_input.upper() == 'P':
+        if user_input.upper() == 'P' or user_input.upper() == 'p':
             print("\n--- PRESETS ---")
             preset_keys = list(PRESETS.keys())
             for i, name in enumerate(preset_keys, 1):
@@ -69,6 +69,9 @@ def fetch_and_store_data(tickers):
 
 def optimize_new_portfolio():
     tickers = get_tickers_input()
+    if not tickers:
+        return
+
     investment_amount = get_user_input("Enter Investment Amount ($): ", float)
     max_allocation_pct = get_user_input("Enter Max Allocation % (e.g., 50): ", float)
     max_allocation = max_allocation_pct / 100.0
@@ -114,6 +117,8 @@ def optimize_new_portfolio():
 
 def rebalance_portfolio():
     tickers = get_tickers_input()
+    if not tickers:
+        return
     
     current_shares = {}
     for ticker in tickers:

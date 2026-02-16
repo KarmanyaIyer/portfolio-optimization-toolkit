@@ -46,10 +46,9 @@ def plot_efficient_frontier(mean_returns, covariance_matrix, optimal_weights, nu
     
     # Vectorized calculation of returns
     portfolio_returns = numpy.dot(weights, mean_returns)
-    
-    # Vectorized calculation of volatility
-    # Variance = w.T * Cov * w. We need to do this for each row in weights.
-    # Using einsum for efficient batch matrix multiplication: 'ij,jk,ik->i'
+
+    # Variance = w^T * Cov * w.
+    # Using einsum (Einstein summation) for efficient batch matrix multiplication: 'ij,jk,ik->i'
     # i: portfolio index, j: asset index 1, k: asset index 2
     # weights (i, j), covariance_matrix (j, k), weights (i, k)
     portfolio_variances = numpy.einsum('ij,jk,ik->i', weights, covariance_matrix, weights)
