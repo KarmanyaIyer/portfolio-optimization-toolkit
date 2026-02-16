@@ -18,7 +18,14 @@ logger = logging.getLogger(__name__)
 PRESETS = {
     'Big Tech': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
     'Defense': ['LMT', 'RTX', 'NOC', 'GD', 'KTOS'],
-    'Pharma': ['LLY', 'JNJ', 'PFE', 'MRK']
+    'Pharma': ['LLY', 'JNJ', 'PFE', 'MRK'],
+    'Finance Leaders': ['JPM', 'BAC', 'V', 'MA', 'GS'],
+    'Consumer Staples': ['PG', 'KO', 'PEP', 'COST', 'WMT'],
+    'Green Energy': ['NEE', 'ENPH', 'FSLR', 'BE', 'PLUG'],
+    'Semiconductors': ['TSM', 'AVGO', 'AMD', 'QCOM', 'INTC'],
+    'Diversified Blue Chips': ['AAPL', 'JPM', 'JNJ', 'PG', 'XOM', 'LMT', 'DIS', 'T'],
+    'Balanced Mix': ['MSFT', 'JNJ', 'JPM', 'NEE', 'AMT', 'CAT'],
+    'High Growth': ['TSLA', 'NVDA', 'SHOP', 'SQ', 'PLTR']
 }
 
 def get_user_input(prompt, type_func=str):
