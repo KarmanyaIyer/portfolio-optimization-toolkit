@@ -24,7 +24,7 @@ A Python-based financial modeling tool that constructs optimal portfolios using 
 * Market signals
 
 ### Libraries used
-* **Python:** Pandas, NumPy, SciPy, Matplotlib, Logging, and more (in [requirements.txt]).
+* **Python:** Pandas, NumPy, SciPy, Matplotlib, Logging, and more (in [requirements.txt](requirements.txt)).
 * **SQL:** SQLite for time-series data storage.
 
 
@@ -116,9 +116,9 @@ $\text{subject to:} \quad \sum_{i=1}^{n} w_i = 1, \quad 0 \le w_i \le w_{max}$
 *   We solve for $w_{i}$ using Sequential Least Squares Programming (SLSQP).
 
 ### 3. Value at Risk (VaR)
-We calculate 95% Historical VaR is calculated by taking the 5th percentile of the portfolio's historical return distribution:
+We calculate 95% Historical VaR is calculated by taking the 5th percentile of the portfolio's (p) historical return distribution:
 
-$VaR_{95} = \text{percentile}(R_{portfolio}, 5)$
+$VaR_{95} = \text{percentile}(R_{p}, 5)$
 
 
 ### Caveats
