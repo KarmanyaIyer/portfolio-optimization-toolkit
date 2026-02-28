@@ -16,10 +16,10 @@ logging.basicConfig(filename="main.log", level=logging.INFO, format="%(asctime)s
 logger = logging.getLogger(__name__)
 
 PRESETS = {
-    'Big Tech': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
+    'Tech Giants': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
     'Defense': ['LMT', 'RTX', 'NOC', 'GD', 'KTOS'],
-    'Pharma': ['LLY', 'JNJ', 'PFE', 'MRK'],
-    'Finance Leaders': ['JPM', 'BAC', 'V', 'MA', 'GS'],
+    'Pharmaceuticals': ['LLY', 'JNJ', 'PFE', 'MRK'],
+    'Financial Services': ['JPM', 'BAC', 'V', 'MA', 'GS'],
     'Consumer Staples': ['PG', 'KO', 'PEP', 'COST', 'WMT'],
     'Green Energy': ['NEE', 'ENPH', 'FSLR', 'BE', 'PLUG'],
     'Semiconductors': ['TSM', 'AVGO', 'AMD', 'QCOM', 'INTC'],
@@ -57,7 +57,7 @@ def get_tickers_input():
                     else:
                         print("Invalid preset number.")
                 except ValueError:
-                    print("Invalid input.")
+                    print("Invalid input. Please try again.")
         else:
             return [t.strip().upper() for t in user_input.split(',')]
 
@@ -214,7 +214,7 @@ def main():
             print("Exiting...")
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Invalid input. Please try again.")
 
 if __name__ == "__main__":
     main()
